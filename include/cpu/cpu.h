@@ -11,6 +11,14 @@
 #include "../types.h"
 #include "../memory/mem.h"
 
+namespace Opcodes {
+
+    static constexpr Byte NOP = 0x00; // No operation
+    static constexpr Byte LD_BC_NN = 0x01; // Load BC with 2 byte int
+
+
+};
+
 struct CPU {
     
 
@@ -67,13 +75,33 @@ struct CPU {
 
     }
 
+    Byte fetchOpcode(Mem& memory, Word& PC, u32& cycles) {
+
+        // Getting the opcode is a 4 cycle operation on the Z80
+        Byte opcode = memory.read(PC++);
+        cycles -= 4;
+        return opcode;
+    
+    }
+
+    Byte memoryRead(Mem& memory, Word address, u32& cycles) const {
+
+        // Reading a byte from memory is a 3 cycle operation on the Z80
+        Byte data = memory.read(address);
+        cycles -= 3;
+        return data;
+
+    }
+
     void Execute(u32& cycles, Mem& memory) {
+
+        using namespace Opcodes;
 
         // cycles - Number of CPU cycles to execute for 
         while (cycles >= 0) {
 
             // 1) Fetch the opcode
-            Byte opcode = memory.read(PC);
+            Byte opcode = fetchOpcode(memory, PC, cycles);
 
             // 2) Increment PC
             PC++;
@@ -82,22 +110,21 @@ struct CPU {
             switch (opcode) {
 
                 // NOP (No operation)
-                case 0x00: 
+                case NOP: 
                     cycles -=4;
                     break;
 
                 // LD BC, nn
                 // Loads a 16 bit value into the BC register pair
                 // E.g. 0x1234  B -> 0x12  C -> 0x34
-                case 0x01:
+                case LD_BC_NN:
 
                     // Read low byte of nn into C, high byte into B
-                    C = memory.read(PC);
-                    B = memory.read(PC++);
+                    C = memoryRead(memory, PC, cycles);
+                    B = memoryRead(memory, PC++, cycles);
 
-                    // Increment PC and decrement cycles
+                    // Increment PC
                     PC++;
-                    cycles -= 10;
 
                     break;
                 
